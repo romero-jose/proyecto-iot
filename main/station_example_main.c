@@ -166,7 +166,7 @@ esp_err_t _http_event_handle(esp_http_client_event_t *evt) {
 
 void send_data() {
   esp_http_client_config_t config = {
-      .url = "http://httpbin.org/redirect/2",
+      .url = "http://httpbin.org/get",
       .event_handler = _http_event_handle,
   };
   esp_http_client_handle_t client = esp_http_client_init(&config);
