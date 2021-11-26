@@ -166,11 +166,26 @@ esp_err_t _http_event_handle(esp_http_client_event_t *evt) {
 
 void send_data() {
   esp_http_client_config_t config = {
-      .url = "http://httpbin.org/get",
+      .url = "http://httpbin.org/post",
+      .method = HTTP_METHOD_POST,
       .event_handler = _http_event_handle,
   };
   esp_http_client_handle_t client = esp_http_client_init(&config);
-  esp_err_t err = esp_http_client_perform(client);
+
+  const char post_data[] = "{\"measurement\": 10.342}";
+  const size_t post_data_len = sizeof post_data;
+  esp_http_client_set_url(client, "http://httpbin.org/post");
+  esp_http_client_set_method(client, HTTP_METHOD_POST);
+  esp_http_client_set_header(client, "Content-Type", "application/json");
+  esp_http_client_set_post_field(client, (char *) post_data, post_data_len);
+  esp_err_t err  = esp_http_client_perform(client);
+  if (err == ESP_OK) {
+      ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %lld",
+              esp_http_client_get_status_code(client),
+              esp_http_client_get_content_length(client));
+  } else {
+      ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+  }
 
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "Status = %d, content_length = %" PRId64,
