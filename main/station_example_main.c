@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
@@ -209,8 +210,13 @@ void app_main(void) {
   }
   ESP_ERROR_CHECK(ret);
 
-  ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
   wifi_init_sta();
-
-  send_data();
+  while(true) {
+    send_data();
+    esp_wifi_stop();
+    // Sleep for 30 seconds
+    esp_sleep_enable_timer_wakeup(30'000'000);
+    esp_deep_sleep_start();
+    esp_wifi_start();
+  }
 }
