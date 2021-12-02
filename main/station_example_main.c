@@ -40,6 +40,8 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
+#define URL "http://192.168.0.138:8000"
+
 static const char *TAG = "wifi station";
 
 static int s_retry_num = 0;
@@ -166,25 +168,26 @@ esp_err_t _http_event_handle(esp_http_client_event_t *evt) {
 
 void send_data() {
   esp_http_client_config_t config = {
-      .url = "http://httpbin.org/post",
+      .url = URL "/measurements/",
       .method = HTTP_METHOD_POST,
       .event_handler = _http_event_handle,
   };
   esp_http_client_handle_t client = esp_http_client_init(&config);
 
-  const char post_data[] = "{\"measurement\": 10.342}";
-  const size_t post_data_len = sizeof post_data;
-  esp_http_client_set_url(client, "http://httpbin.org/post");
-  esp_http_client_set_method(client, HTTP_METHOD_POST);
+  const char post_data[] = "{"
+                           "\"sensor\": 1,\n"
+                           "\"measurement\": 1283.12321\n"
+                           "}";
+  int post_data_len = sizeof(post_data);
   esp_http_client_set_header(client, "Content-Type", "application/json");
-  esp_http_client_set_post_field(client, (char *) post_data, post_data_len);
+  esp_http_client_set_post_field(client, (char *) post_data, post_data_len - 1);
   esp_err_t err  = esp_http_client_perform(client);
   if (err == ESP_OK) {
-      ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %lld",
-              esp_http_client_get_status_code(client),
-              esp_http_client_get_content_length(client));
+    ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %lld",
+             esp_http_client_get_status_code(client),
+             esp_http_client_get_content_length(client));
   } else {
-      ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+    ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
   }
 
   if (err == ESP_OK) {
@@ -208,6 +211,6 @@ void app_main(void) {
 
   ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
   wifi_init_sta();
-  
+
   send_data();
 }
