@@ -17,6 +17,7 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include <string.h>
+#include <stdio.h>
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
@@ -42,6 +43,9 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_FAIL_BIT BIT1
 
 #define URL "http://192.168.0.138:8000"
+#define SENSOR_ID 1
+
+char buffer[100] = {0};
 
 static const char *TAG = "wifi station";
 
@@ -167,6 +171,14 @@ esp_err_t _http_event_handle(esp_http_client_event_t *evt) {
   return ESP_OK;
 }
 
+float get_data() {
+  return esp_random() + 0.0 / UINT32_MAX;
+}
+
+void format_request(float measurement) {
+  snprintf(buffer, sizeof (buffer),"{\"sensor\": %d, \"measurement\": %.4f}", SENSOR_ID, measurement);
+}
+
 void send_data() {
   esp_http_client_config_t config = {
       .url = URL "/measurements/",
@@ -175,13 +187,11 @@ void send_data() {
   };
   esp_http_client_handle_t client = esp_http_client_init(&config);
 
-  const char post_data[] = "{"
-                           "\"sensor\": 1,\n"
-                           "\"measurement\": 1283.12321\n"
-                           "}";
-  int post_data_len = sizeof(post_data);
+  float measurement = get_data();
+  format_request(measurement);
+  int post_data_len = strnlen(buffer, sizeof(buffer));
   esp_http_client_set_header(client, "Content-Type", "application/json");
-  esp_http_client_set_post_field(client, (char *) post_data, post_data_len - 1);
+  esp_http_client_set_post_field(client, (char *) buffer, post_data_len);
   esp_err_t err  = esp_http_client_perform(client);
   if (err == ESP_OK) {
     ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %lld",
@@ -215,7 +225,7 @@ void app_main(void) {
     send_data();
     esp_wifi_stop();
     // Sleep for 30 seconds
-    esp_sleep_enable_timer_wakeup(30'000'000);
+    esp_sleep_enable_timer_wakeup(30000000);
     esp_deep_sleep_start();
     esp_wifi_start();
   }
